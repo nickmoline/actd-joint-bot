@@ -5,9 +5,7 @@ array set fleetassignment {}
 # Set the following to the prefix you want to use for this joint
 set jointchanprefix "#wide_"
 
-set jointprefixlen [string length $jointchanprefix]
-
-initialize_ship_channels 
+set jointprefixlen [string length $jointchanprefix] 
 
 #;;; Where the logs will be saved.
 set logger(dir) "logs/"
@@ -177,6 +175,8 @@ proc msg_ship {nick host handle rest} {
 	global taskforces
 	global jointchanprefix
 	global jointprefixlen
+
+	initialize_ship_channels
 
 	set cmd [string tolower [lindex [split $rest] 0]]
 	set shipname [lindex [split $rest] 1]
