@@ -23,23 +23,21 @@ proc initialize_ship_channels {} {
 	global jointprefixlen
 	global shiplist
 
-	array set groupchans {
-		command Command
-		fleethq FleetHQ
-		sensorgrid SensorGrid
-	}
+	initialize_ship_chan "Group" "Command"
+	initialize_ship_chan "Group" "FleetHQ"
+	initialize_ship_chan "Group" "SensorGrid"
 
-	foreach name $groupchans {
-		if {![validchan $jointchanprefix_$name]} {
-			putlog "Creating Group Channel $name : $jointchanprefix_$name"
-			channel add $jointchanprefix_$name
-		}
-	}
 	foreach name $shiplist {
-		if {![validchan $jointchanprefix_$name]} {
-			putlog "Creating Ship Channel $name : $jointchanprefix_$name"
-			channel add $jointchanprefix_$name
-		}
+		initialize_ship_chan "Ship" $name
+	}
+}
+
+proc initialize_ship_chan {type name} {
+	global jointchanprefix
+
+	if {![validchan $jointchanprefix_$name]} {
+		putlog "Creating $type Channel $name : $jointchanprefix_$name"
+		channel add $jointchanprefix_$name
 	}
 }
 
@@ -181,11 +179,9 @@ proc msg_ship {nick host handle rest} {
 	set cmd [string tolower [lindex [split $rest] 0]]
 	set shipname [lindex [split $rest] 1]
 	if {$cmd eq "add"} {
-		if {![validchan $jointchanprefix_$shipname]} {
-			channel add $jointchanprefix_$shipname
-			set shiplist([string tolower $shipname]) $shipname
-			puthelp "PRIVMSG $nick : Added $shipname"
-		}
+		set shiplist([string tolower $shipname]) $shipname
+		initialize_ship_chan "Ship" $shipname
+		puthelp "PRIVMSG $nick : Added $shipname"
 	}
 	if {$cmd eq "del"} {
 		unset shiplist([string tolower $shipname])
