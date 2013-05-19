@@ -2,8 +2,10 @@ array set shiplist {}
 array set taskforces {}
 array set fleetassignment {}
 
+# Set the following to the prefix you want to use for this joint
 set jointchanprefix "#wide_"
-set jointprefixlen 6
+
+set jointprefixlen [string length $jointchanprefix]
 
 #;;; Where the logs will be saved.
 set logger(dir) "logs/"
