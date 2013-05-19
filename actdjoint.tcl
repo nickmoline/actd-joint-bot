@@ -278,7 +278,7 @@ proc parse_joint_channel {chan} {
 	global jointchanprefix
 	global jointprefixlen
 
-	set originshiplabel [string tolower range $chan $jointprefixlen [string length $chan]]
+	set originshiplabel [string tolower [string range $chan $jointprefixlen [string length $chan]]]
 	return $originshiplabel
 }
 
