@@ -66,10 +66,8 @@ proc message_ship_target {targetship message} {
 	if {[string tolower $targetship] eq "all"} {
 		set chanlist [lindex [channels]]
 		foreach ch $chanlist {
-			if {[string tolower $ch] != [ship_channel "fleethq"]} {
-				if {[string tolower $ch] != [string tolower $chan]} {
-					putquick "PRIVMSG $ch : $message"
-				}
+			if {[parse_joint_channel $ch] != "fleethq" && [string tolower $ch] != [string tolower $chan]} {
+				putquick "PRIVMSG $ch : $message"
 			}
 		}
 	} elseif {[validchan $targetchan]} {
@@ -121,10 +119,10 @@ proc relay_message {nick uhost hand chan rest} {
 proc relay_action_message {nick chan prefix message} {
 	global shiplist
 	set chanlist [channels]
-	set originship [get_ship_name $chan])
+	set originship [get_ship_name $chan]
 	global jointchanprefix
 
-	if {[string tolower $chan] eq [ship_channel "command"]} {
+	if {[parse_joint_channel $chan] eq "command"} {
 		message_ship_target "all" "<$nick> $prefix: $message"
 		putlog "$nick sent $prefix to all channels: $message"
   		logger:helper $chan $nick "$prefix: $message"
