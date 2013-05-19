@@ -42,7 +42,7 @@ proc ship_channel {ship} {
 	lappend list $ship
 
 	set chan [join $list ""]
-	putlog "$ship Channel Name: $chan"
+	#putlog "$ship Channel Name: $chan"
 	return $chan
 }
 
