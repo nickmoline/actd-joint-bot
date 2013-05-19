@@ -47,9 +47,10 @@ proc ship_channel {ship} {
 }
 
 proc initialize_ship_chan {type name} {
-	if {![validchan [ship_channel $name]]} {
-		putlog "Creating $type Channel $name : [ship_channel $name]"
-		channel add [ship_channel $name]
+	set channame [ship_channel $name]
+	if {![validchan $channame]} {
+		putlog "Creating $type Channel $name : $channame"
+		channel add $channame
 	}
 }
 
@@ -60,6 +61,8 @@ proc message_ship_target {targetship message} {
 	global fleetassignment
 	global jointprefixlen
 
+	set channame [ship_channel $targetship]
+
 	if {[string tolower $targetship] eq "all"} {
 		set chanlist [lindex [channels]]
 		foreach ch $chanlist {
@@ -69,7 +72,7 @@ proc message_ship_target {targetship message} {
 				}
 			}
 		}
-	} elseif {[validchan [ship_channel $targetship]} {
+	} elseif {[validchan $channame]} {
 		putquick "PRIVMSG [ship_channel $targetship] : $message"
 		if {[string tolower $targetship] != "sensorgrid"} {
 			putquick "PRIVMSG [ship_channel "SensorGrid"] : $message"
@@ -190,6 +193,7 @@ proc msg_ship {nick host handle rest} {
 
 	set cmd [string tolower [lindex [split $rest] 0]]
 	set shipname [lindex [split $rest] 1]
+	set shipname $rest
 	if {$cmd eq "add"} {
 		set shiplist([string tolower $shipname]) $shipname
 		initialize_ship_chan "Ship" $shipname
