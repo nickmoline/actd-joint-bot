@@ -7,6 +7,8 @@ set jointchanprefix "#wide_"
 
 set jointprefixlen [string length $jointchanprefix]
 
+initialize_ship_channels 
+
 #;;; Where the logs will be saved.
 set logger(dir) "logs/"
 
@@ -17,6 +19,31 @@ set logger(strip) "1"
 
 #;;; Save by Day, Week, Month or Disable?
 set logger(time) "Month"
+
+proc initialize_ship_channels {} {
+	global jointchanprefix
+	global jointprefixlen
+	global shiplist
+
+	array set groupchans {
+		command Command
+		fleethq FleetHQ
+		sensorgrid SensorGrid
+	}
+
+	foreach name $groupchans {
+		if {![validchan $jointchanprefix_$name]} {
+			putlog "Creating Group Channel $name : $jointchanprefix_$name"
+			channel add $jointchanprefix_$name
+		}
+	}
+	foreach name $shiplist {
+		if {![validchan $jointchanprefix_$name]} {
+			putlog "Creating Ship Channel $name : $jointchanprefix_$name"
+			channel add $jointchanprefix_$name
+		}
+	}
+}
 
 proc message_ship_target {targetship message} {
 	global shiplist
