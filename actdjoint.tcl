@@ -175,10 +175,6 @@ proc relay_global_scene {nick uhost hand chan rest} {
 	relay_global_action_message $nick $chan "GLOBAL SCENE" $rest
 }
 
-proc actdjoint_get_topic {chan} {
-	set chanshort [parse_joint_channel $chan]
-	if {$chanshort == "fleethq" || $chanshort == "sensorgrid" || $chanshort == ""}
-}
 
 bind join - "*" actdjoint_join_main
 proc actdjoint_join_main {nick uhost hand chan} {
@@ -296,10 +292,8 @@ proc get_ship_name {chan} {
 		return "Sensor Grid"
 	} elseif {$chanshort == "command"} {
 		return "Command"
-	} elseif {[info exists $shiplist($chanshort)]} {
-		return $shiplist($chanshort);
 	} else {
-		return $chanshort
+		return $shiplist($chanshort)
 	}
 }
 
