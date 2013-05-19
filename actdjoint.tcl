@@ -27,8 +27,10 @@ proc initialize_ship_channels {} {
 	initialize_ship_chan "Group" "FleetHQ"
 	initialize_ship_chan "Group" "SensorGrid"
 
-	foreach name $shiplist {
-		initialize_ship_chan "Ship" $name
+	if {[array size $shiplist] > 0} {
+		foreach name $shiplist {
+			initialize_ship_chan "Ship" $name
+		}
 	}
 }
 
