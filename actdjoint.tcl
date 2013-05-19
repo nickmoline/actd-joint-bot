@@ -35,12 +35,11 @@ proc initialize_ship_channels {} {
 proc ship_channel {ship} {
 	global jointchanprefix
 	set list {$jointchanprefix "_" $ship}
-	return join $list ""
+	set chan join $list ""
+	putlog "Channel Name: $chan"
 }
 
 proc initialize_ship_chan {type name} {
-	global jointchanprefix
-
 	if {![validchan [ship_channel $name]]} {
 		putlog "Creating $type Channel $name : [ship_channel $name]"
 		channel add [ship_channel $name]
