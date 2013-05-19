@@ -193,7 +193,7 @@ proc msg_ship {nick host handle rest} {
 
 	set cmd [string tolower [lindex [split $rest] 0]]
 	set shipname [lindex [split $rest] 1]
-	set shipname $rest
+	#set shipname $rest
 	if {$cmd eq "add"} {
 		set shiplist([string tolower $shipname]) $shipname
 		initialize_ship_chan "Ship" $shipname
