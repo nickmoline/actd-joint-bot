@@ -3,7 +3,7 @@ array set taskforces {}
 array set fleetassignment {}
 
 # Set the following to the prefix you want to use for this joint
-set jointchanprefix "#wide_"
+set jointchanprefix "#Wide_"
 
 set jointprefixlen [string length $jointchanprefix] 
 
@@ -61,7 +61,7 @@ proc message_ship_target {targetship message} {
 	global fleetassignment
 	global jointprefixlen
 
-	set channame [ship_channel $targetship]
+	set targetchan [ship_channel $targetship]
 
 	if {[string tolower $targetship] eq "all"} {
 		set chanlist [lindex [channels]]
@@ -72,8 +72,8 @@ proc message_ship_target {targetship message} {
 				}
 			}
 		}
-	} elseif {[validchan $channame]} {
-		putquick "PRIVMSG [ship_channel $targetship] : $message"
+	} elseif {[validchan $targetchan]} {
+		putquick "PRIVMSG $targetchan : $message"
 		if {[string tolower $targetship] != "sensorgrid"} {
 			putquick "PRIVMSG [ship_channel "SensorGrid"] : $message"
 		}
@@ -171,6 +171,43 @@ proc relay_global_info {nick uhost hand chan rest} {
 bind pub - "GS:" relay_global_scene
 proc relay_global_scene {nick uhost hand chan rest} {
 	relay_action_message $nick $chan "GLOBAL SCENE" $rest
+}
+
+proc actdjoint_get_topic {chan} {
+	set chanshort [parse_joint_channel $chan]
+	if {$chanshort == "fleethq" || $chanshort == "sensorgrid" || $chanshort == ""}
+}
+
+bind join - "*" actdjoint_join_main
+proc actdjoint_join_main {nick uhost hand chan} {
+	global botnick
+	if {$nick==$botnick} {
+		actdjoint_set_topics $chan
+	}
+}
+
+bind mode - "*" actdjoint_mode_main
+proc actdjoint_mode_main {nick uhost hand chan mode target} {
+	global botnick
+	if {$target == $botnick && $mode == "+o"} {
+		actdjoint_set_topics $chan
+	}
+}
+
+proc actdjoint_set_topics {chan} {
+	if {[botisop $chan]} {
+		set chanshort [parse_joint_channel $chan]
+		if {$chanshort == "fleethq"} {
+			putquick "TOPIC $chan : Fleet Wide OOC"
+		} elseif {$chanshort == "sensorgrid"} {
+			putquick "TOPIC $chan : Fleet Wide Sensor Grid - All COMMs and actions go here"
+		} elseif {$chanshort == "command"} {
+			putquick "TOPIC $chan : Fleet Wide Command Center - SMs only"
+		} else {
+			set shipname [get_ship_name $chan]
+			putquick "TOPIC $chan : Fleet Wide Mission Channel for the U.S.S. $shipname"
+		}
+	}
 }
 
 bind need - "% op" needop
