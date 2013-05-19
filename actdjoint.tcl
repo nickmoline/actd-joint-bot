@@ -31,8 +31,8 @@ proc relay_message {nick uhost hand chan rest} {
 	global fleetassignment
 	
 	
-	if {[string tolower $chan] != "#reflections_fleethq" && [string tolower $chan] != "#reflections_sensorgrid"} {
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
+	if {[string tolower $chan] != "#wide_fleethq" && [string tolower $chan] != "#wide_sensorgrid"} {
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
 	#set targetship [string range $target 0 [expr [string length $target] - 2]]
 	set targetship [string trimright $target :]
 	putlog "$nick sent COM MESSAGE TO $targetship of $rest"
@@ -43,21 +43,21 @@ proc relay_message {nick uhost hand chan rest} {
 				putquick "PRIVMSG $ch : <$originship - $nick> @COM: $rest"
 			}
 		}
-	} elseif {[validchan #Reflections_$targetship]} {
-		putquick "PRIVMSG #Reflections_$targetship : <$originship - $nick> @COM: $rest"
-		putquick "PRIVMSG #Reflections_SensorGrid : <$originship - $nick> COM: $rest"
+	} elseif {[validchan #wide_$targetship]} {
+		putquick "PRIVMSG #wide_$targetship : <$originship - $nick> @COM: $rest"
+		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> COM: $rest"
 	} else {
 		set foundvalid 0
 		foreach name [array names fleetassignment] {
 			if {$fleetassignment($name) eq $targetship} {
 				set foundvalid 1
-				putquick "PRIVMSG #Reflections_$name : <$originship - $nick> @COM: $rest"
+				putquick "PRIVMSG #wide_$name : <$originship - $nick> @COM: $rest"
 			}
 		}
 		if {$foundvalid eq 0} {
-			putquick "PRIVMSG #Reflections_Command : <$originship - $nick> @COM: $rest"
+			putquick "PRIVMSG #wide_Command : <$originship - $nick> @COM: $rest"
 		}
-		putquick "PRIVMSG #Reflections_SensorGrid : <$originship - $nick> COM: $rest"
+		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> COM: $rest"
 	}
 	}
 	return 1
@@ -70,11 +70,11 @@ bind pub - "A:" relay_action
 proc relay_action {nick uhost hand chan rest} {
 	global shiplist
 	set chanlist [channels]
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
 
-	if {[string tolower $chan] eq "#reflections_command"} {
+	if {[string tolower $chan] eq "#wide_command"} {
 		foreach ch $chanlist {
-			if {[string tolower $ch] != "#reflections_fleethq"} {
+			if {[string tolower $ch] != "#wide_fleethq"} {
 				putquick "PRIVMSG $ch : <$nick> ACTION: $rest"
 			}
 		}
@@ -88,7 +88,7 @@ proc relay_action {nick uhost hand chan rest} {
   }
   logger:save $who "ACTION: $rest"
 	} else {
-		putquick "PRIVMSG #Reflections_SensorGrid : <$originship - $nick> ACTION: $rest"
+		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> ACTION: $rest"
 	}
 
 
@@ -101,10 +101,10 @@ bind pub - "I:" relay_info
 proc relay_info {nick uhost hand chan rest} {
 	global shiplist
 	set chanlist [channels]
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
-	if {[string tolower $chan] eq "#reflections_command"} {
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
+	if {[string tolower $chan] eq "#wide_command"} {
 		foreach ch $chanlist {
-			if {[string tolower $ch] != "#reflections_fleethq"} {
+			if {[string tolower $ch] != "#wide_fleethq"} {
 				putquick "PRIVMSG $ch : <$nick> INFO: $rest"
 			}
 		}
@@ -118,7 +118,7 @@ proc relay_info {nick uhost hand chan rest} {
   }
   logger:save $who "INFO: $rest"
 	} else {
-		putquick "PRIVMSG #Reflections_SensorGrid : <$originship - $nick> INFO: $rest"
+		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> INFO: $rest"
 	}
 
 
@@ -130,10 +130,10 @@ bind pub - "S:" relay_scene
 proc relay_scene {nick uhost hand chan rest} {
 	global shiplist
 	set chanlist [channels]
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
-	if {[string tolower $chan] eq "#reflections_command"} {
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
+	if {[string tolower $chan] eq "#wide_command"} {
 		foreach ch $chanlist {
-			if {[string tolower $ch] != "#reflections_fleethq"} {
+			if {[string tolower $ch] != "#wide_fleethq"} {
 				putquick "PRIVMSG $ch : <$nick> SCENE: $rest"
 			}
 		}
@@ -147,7 +147,7 @@ proc relay_scene {nick uhost hand chan rest} {
   }
   logger:save $who "SCENE: $rest"
 	} else {
-		putquick "PRIVMSG #Reflections_SensorGrid : <$originship - $nick> SCENE: $rest"
+		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> SCENE: $rest"
 	}
 
 	return 1
@@ -160,14 +160,14 @@ bind pub - "GA:" relay_global
 proc relay_global {nick uhost hand chan rest} {
 	global shiplist
 	set chanlist [channels]
-	if {[string tolower $chan] eq "#reflections_command"} {
+	if {[string tolower $chan] eq "#wide_command"} {
 		foreach ch $chanlist {
 			putquick "PRIVMSG $ch : GLOBAL ACTION: $rest"
 		}
 		putlog "$nick sent Mass Global Action to all channels"
 	}
 
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
   if {[isop $nick $chan] == "1"} {
     set who "$originship - Host $nick says:"
   } elseif {[ishalfop $nick $chan] == "1"} {
@@ -183,14 +183,14 @@ bind pub - "GI:" relay_global_info
 proc relay_global_info {nick uhost hand chan rest} {
 	global shiplist
 	set chanlist [channels]
-	if {[string tolower $chan] eq "#reflections_command"} {
+	if {[string tolower $chan] eq "#wide_command"} {
 		foreach ch $chanlist {
 			putquick "PRIVMSG $ch : GLOBAL INFO: $rest"
 		}
 		putlog "$nick sent Mass Global Info to all channels"
 	}
 
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
   if {[isop $nick $chan] == "1"} {
     set who "$originship - Host $nick says:"
   } elseif {[ishalfop $nick $chan] == "1"} {
@@ -206,14 +206,14 @@ bind pub - "GS:" relay_global_scene
 proc relay_global_scene {nick uhost hand chan rest} {
 	global shiplist
 	set chanlist [channels]
-	if {[string tolower $chan] eq "#reflections_command"} {
+	if {[string tolower $chan] eq "#wide_command"} {
 		foreach ch $chanlist {
 			putquick "PRIVMSG $ch : GLOBAL SCENE: $rest"
 		}
 		putlog "$nick sent Mass Global Scene to all channels"
 	}
 
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
+	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
   if {[isop $nick $chan] == "1"} {
     set who "$originship - Host $nick says:"
   } elseif {[ishalfop $nick $chan] == "1"} {
@@ -242,15 +242,15 @@ proc msg_ship {nick host handle rest} {
 	set cmd [string tolower [lindex [split $rest] 0]]
 	set shipname [lindex [split $rest] 1]
 	if {$cmd eq "add"} {
-		if {![validchan #Reflections_$shipname]} {
-			channel add #Reflections_$shipname
+		if {![validchan #wide_$shipname]} {
+			channel add #wide_$shipname
 			set shiplist([string tolower $shipname]) $shipname
 			puthelp "PRIVMSG $nick : Added $shipname"
 		}
 	}
 	if {$cmd eq "del"} {
 		unset shiplist([string tolower $shipname])
-		channel remove #Reflections_$shipname
+		channel remove #wide_$shipname
 		puthelp "PRIVMSG $nick : Removed $shipname"
 	}
 	if {$cmd eq "tf"} {
@@ -264,29 +264,37 @@ proc msg_ship {nick host handle rest} {
 
 bind pubm - "#* *" logger:text
 proc logger:text {nick uhost handle chan text} {
-	global shiplist
-	if {[string tolower $chan] != "#reflections_command" && [string tolower $chan] != "#reflections_fleethq" && [string tolower $chan] != "#reflections_sensorgrid"} {
-	set originship $shiplist([string tolower [string range $chan 13 [string length $chan]]])
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who $text
-	}
+    global shiplist
+    if {[string tolower $chan] != "#wide_command" && [string tolower $chan] != "#wide_fleethq" && [string tolower $chan] != "#wide_sensorgrid"} {
+        set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
+        
+        if {[isop $nick $chan] == "1"} {
+            set who "Host $nick says:"
+        } elseif {[ishalfop $nick $chan] == "1"} {
+            set who "Host $nick says:"
+        } else {
+            set who "$nick says:"
+        }
+        logger:save $who $text
+        logger:save $originship $who $text
+    }
 }
 
 ### Secondary Commands
 proc logger:save {who text} {
-  global logger
-
-  set log "[open "$logger(dir)JointLog.log" a]"
-  puts $log "[logger:strip $who]\r"
-  puts $log "[logger:strip $text]\r";
-  puts $log "\r"
-  close $log
+    global logger
+    
+    set log "[open "$logger(dir)JointLog.log" a]"
+    set shiplog "[open "$logger(dir)$ship.log" a]"
+    puts $log "[logger:strip $ship] - [logger:strip $who]\r";
+    puts $shiplog "[logger:strip $who]\r";
+    puts $log "[logger:strip $text]\r";
+    puts $shiplog "[logger:strip $text]\r";
+    puts $log "\r"
+    puts $shiplog "\r";
+    
+    close $log
+    close $shiplog
 }
 
 ### Tertiary Commands
