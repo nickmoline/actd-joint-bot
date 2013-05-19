@@ -285,7 +285,18 @@ proc get_ship_name {chan} {
 	global jointchanprefix
 	global jointprefixlen
 
-	return $shiplist([parse_joint_channel $chan]);
+	set chanshort [parse_joint_channel $chan]
+	if {$chanshort == "fleethq"} {
+		return "Fleet HQ"
+	} elseif {$chanshort == "sensorgrid"} {
+		return "Sensor Grid"
+	} elseif {$chanshort == "command"} {
+		return "Command"
+	} elseif {[info exists $shiplist($chanshort)]} {
+		return $shiplist($chanshort);
+	} else {
+		return $chanshort
+	}
 }
 
 proc logger:save {ship who text} {
