@@ -35,7 +35,10 @@ proc initialize_ship_channels {} {
 proc ship_channel {ship} {
 	global jointchanprefix
 	set list {}
+	
 	lappend list $jointchanprefix
+	lappend list $ship
+
 	set chan [join $list ""]
 	putlog "$ship Channel Name: $chan"
 	return $chan
