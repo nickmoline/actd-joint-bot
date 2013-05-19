@@ -54,7 +54,7 @@ proc initialize_ship_chan {type name} {
 	}
 }
 
-proc message_ship_target {targetship message} {
+proc message_ship_target {chan targetship message} {
 	global shiplist
 	global jointchanprefix
 	global taskforces
@@ -105,13 +105,13 @@ proc relay_message {nick uhost hand chan rest} {
 	global fleetassignment
 	global jointchanprefix
 	
-	if {[string tolower $chan] != [ship_channel "fleethq"] && [string tolower $chan] != [ship_channel "sensorgrid"]} {
-		set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
+	if {[parse_joint_channel $chan] != "fleethq" && [parse_joint_channel $chan] != "sensorgrid"} {
+		set originship [get_ship_name $chan]
 		#set targetship [string range $target 0 [expr [string length $target] - 2]]
 		set targetship [string trimright $target :]
 
 		putlog "$nick sent COM MESSAGE TO $targetship of $rest"
-		message_ship_target $targetship "<$originship - $nick> @COM: $rest"
+		message_ship_target $chan $targetship "<$originship - $nick> @COM: $rest"
 	}
 	return 1
 }
@@ -123,14 +123,18 @@ proc relay_action_message {nick chan prefix message} {
 	global jointchanprefix
 
 	if {[parse_joint_channel $chan] eq "command"} {
-		message_ship_target "all" "<$nick> $prefix: $message"
-		putlog "$nick sent $prefix to all channels: $message"
-  		logger:helper $chan $nick "$prefix: $message"
+		relay_global_action_message $nick $chan $prefix $message
 	} else {
-		message_ship_target "sensorgrid" "<$originship - $nick> $prefix: $message"
+		message_ship_target $chan "sensorgrid" "<$originship - $nick> $prefix: $message"
 	}
 
 	return 1
+}
+
+proc relay_global_action_message {nick chan prefix message} {
+	message_ship_target $chan "all" "<$nick> $prefix: $message"
+	putlog "$nick sent $prefix to all channels: $message"
+	logger:helper $chan $nick "$prefix: $message"
 }
 
 bind pub - "ACTION:" relay_action
@@ -158,17 +162,17 @@ bind pub - "GLOBAL:" relay_global
 bind pub - "G:" relay_global
 bind pub - "GA:" relay_global
 proc relay_global {nick uhost hand chan rest} {
-	relay_action_message $nick $chan "GLOBAL ACTION" $rest
+	relay_global_action_message $nick $chan "GLOBAL ACTION" $rest
 }
 
 bind pub - "GI:" relay_global_info
 proc relay_global_info {nick uhost hand chan rest} {
-	relay_action_message $nick $chan "GLOBAL INFO" $rest
+	relay_global_action_message $nick $chan "GLOBAL INFO" $rest
 }
 
 bind pub - "GS:" relay_global_scene
 proc relay_global_scene {nick uhost hand chan rest} {
-	relay_action_message $nick $chan "GLOBAL SCENE" $rest
+	relay_global_action_message $nick $chan "GLOBAL SCENE" $rest
 }
 
 proc actdjoint_get_topic {chan} {
