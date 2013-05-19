@@ -1,15 +1,9 @@
-bind pub - "COM:" relay_message
-bind pub - "COMM:" relay_message
-bind pub - "COM" relay_message
-bind pub - "COMM" relay_message
-
-array set shiplist {
-	elara Elara
-	quirinus Quirinus
-	arcadia Arcadia
-}
+array set shiplist {}
 array set taskforces {}
 array set fleetassignment {}
+
+set jointchanprefix "#wide_"
+set jointprefixlen 6
 
 #;;; Where the logs will be saved.
 set logger(dir) "logs/"
@@ -22,6 +16,48 @@ set logger(strip) "1"
 #;;; Save by Day, Week, Month or Disable?
 set logger(time) "Month"
 
+proc message_ship_target {targetship message} {
+	global shiplist
+	global jointchanprefix
+	global taskforces
+	global fleetassignment
+	global jointprefixlen
+
+	if {[string tolower $targetship] eq "all"} {
+		set chanlist [lindex [channels]]
+		foreach ch $chanlist {
+			if {[string tolower $ch] != "$jointchanprefix_fleethq"} {
+				if {[string tolower $ch] != [string tolower $chan]} {
+					putquick "PRIVMSG $ch : $message"
+				}
+			}
+		}
+	} elseif {[validchan $jointchanprefix_$targetship]} {
+		putquick "PRIVMSG $jointchanprefix_$targetship : $message"
+		if {[string tolower $targetship] != "sensorgrid"} {
+			putquick "PRIVMSG $jointchanprefix_SensorGrid : $message"
+		}
+	} else {
+		set foundvalid 0
+		foreach name [array names fleetassignment] {
+			if {$fleetassignment($name) eq $targetship} {
+				set foundvalid 1
+				putquick "PRIVMSG $jointchanprefix_$name : $message"
+			}
+		}
+		if {$foundvalid eq 0} {
+			putquick "PRIVMSG $jointchanprefix_Command : $message"
+		}
+		putquick "PRIVMSG $jointchanprefix_SensorGrid : $message"
+	}
+}
+
+
+bind pub - "COM:" relay_message
+bind pub - "COMM:" relay_message
+bind pub - "COM" relay_message
+bind pub - "COMM" relay_message
+
 proc relay_message {nick uhost hand chan rest} {
 	set target [string tolower [lindex [split $rest] 0]]
 	set chan [string tolower $chan]
@@ -29,128 +65,54 @@ proc relay_message {nick uhost hand chan rest} {
 	global shiplist
 	global taskforces
 	global fleetassignment
+	global jointchanprefix
 	
-	
-	if {[string tolower $chan] != "#wide_fleethq" && [string tolower $chan] != "#wide_sensorgrid"} {
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-	#set targetship [string range $target 0 [expr [string length $target] - 2]]
-	set targetship [string trimright $target :]
-	putlog "$nick sent COM MESSAGE TO $targetship of $rest"
-	if {[string tolower $targetship] eq "all"} {
-		set chanlist [lindex [channels]]
-		foreach ch $chanlist {
-			if {[string tolower $ch] != [string tolower $chan]} {
-				putquick "PRIVMSG $ch : <$originship - $nick> @COM: $rest"
-			}
-		}
-	} elseif {[validchan #wide_$targetship]} {
-		putquick "PRIVMSG #wide_$targetship : <$originship - $nick> @COM: $rest"
-		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> COM: $rest"
-	} else {
-		set foundvalid 0
-		foreach name [array names fleetassignment] {
-			if {$fleetassignment($name) eq $targetship} {
-				set foundvalid 1
-				putquick "PRIVMSG #wide_$name : <$originship - $nick> @COM: $rest"
-			}
-		}
-		if {$foundvalid eq 0} {
-			putquick "PRIVMSG #wide_Command : <$originship - $nick> @COM: $rest"
-		}
-		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> COM: $rest"
-	}
+	if {[string tolower $chan] != "$jointchanprefix_fleethq" && [string tolower $chan] != "$jointchanprefix_sensorgrid"} {
+		set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
+		#set targetship [string range $target 0 [expr [string length $target] - 2]]
+		set targetship [string trimright $target :]
+
+		putlog "$nick sent COM MESSAGE TO $targetship of $rest"
+		message_ship_target $targetship "<$originship - $nick> @COM: $rest"
 	}
 	return 1
 }
 
+proc relay_action_message {nick chan prefix message} {
+	global shiplist
+	set chanlist [channels]
+	set originship [get_ship_name $chan])
+	global jointchanprefix
+
+	if {[string tolower $chan] eq "$jointchanprefix_command"} {
+		message_ship_target "all" "<$nick> $prefix: $message"
+		putlog "$nick sent $prefix to all channels: $message"
+  		logger:helper $chan $nick "$prefix: $message"
+	} else {
+		message_ship_target "sensorgrid" "<$originship - $nick> $prefix: $message"
+	}
+
+	return 1
+}
 
 bind pub - "ACTION:" relay_action
 bind pub - "A:" relay_action
 
 proc relay_action {nick uhost hand chan rest} {
-	global shiplist
-	set chanlist [channels]
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-
-	if {[string tolower $chan] eq "#wide_command"} {
-		foreach ch $chanlist {
-			if {[string tolower $ch] != "#wide_fleethq"} {
-				putquick "PRIVMSG $ch : <$nick> ACTION: $rest"
-			}
-		}
-		putlog "$nick sent Mass Global Scene to all channels"
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who "ACTION: $rest"
-	} else {
-		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> ACTION: $rest"
-	}
-
-
-	return 1
+	relay_action_message $nick $chan "ACTION" $rest
 }
 
 bind pub - "INFO:" relay_info
 bind pub - "I:" relay_info
 
 proc relay_info {nick uhost hand chan rest} {
-	global shiplist
-	set chanlist [channels]
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-	if {[string tolower $chan] eq "#wide_command"} {
-		foreach ch $chanlist {
-			if {[string tolower $ch] != "#wide_fleethq"} {
-				putquick "PRIVMSG $ch : <$nick> INFO: $rest"
-			}
-		}
-		putlog "$nick sent Mass Info to all channels"
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who "INFO: $rest"
-	} else {
-		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> INFO: $rest"
-	}
-
-
-	return 1
+	relay_action_message $nick $chan "INFO" $rest
 }
 
 bind pub - "SCENE:" relay_scene
 bind pub - "S:" relay_scene
 proc relay_scene {nick uhost hand chan rest} {
-	global shiplist
-	set chanlist [channels]
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-	if {[string tolower $chan] eq "#wide_command"} {
-		foreach ch $chanlist {
-			if {[string tolower $ch] != "#wide_fleethq"} {
-				putquick "PRIVMSG $ch : <$nick> SCENE: $rest"
-			}
-		}
-		putlog "$nick sent Mass Scene to all channels"
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who "SCENE: $rest"
-	} else {
-		putquick "PRIVMSG #wide_SensorGrid : <$originship - $nick> SCENE: $rest"
-	}
-
-	return 1
+	relay_action_message $nick $chan "SCENE" $rest
 }
 
 
@@ -158,79 +120,24 @@ bind pub - "GLOBAL:" relay_global
 bind pub - "G:" relay_global
 bind pub - "GA:" relay_global
 proc relay_global {nick uhost hand chan rest} {
-	global shiplist
-	set chanlist [channels]
-	if {[string tolower $chan] eq "#wide_command"} {
-		foreach ch $chanlist {
-			putquick "PRIVMSG $ch : GLOBAL ACTION: $rest"
-		}
-		putlog "$nick sent Mass Global Action to all channels"
-	}
-
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who "GLOBAL ACTION: $rest"
-	return 1
+	relay_action_message $nick $chan "GLOBAL ACTION" $rest
 }
 
 bind pub - "GI:" relay_global_info
 proc relay_global_info {nick uhost hand chan rest} {
-	global shiplist
-	set chanlist [channels]
-	if {[string tolower $chan] eq "#wide_command"} {
-		foreach ch $chanlist {
-			putquick "PRIVMSG $ch : GLOBAL INFO: $rest"
-		}
-		putlog "$nick sent Mass Global Info to all channels"
-	}
-
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who "GLOBAL INFO: $rest"
-	return 1
+	relay_action_message $nick $chan "GLOBAL INFO" $rest
 }
 
 bind pub - "GS:" relay_global_scene
 proc relay_global_scene {nick uhost hand chan rest} {
-	global shiplist
-	set chanlist [channels]
-	if {[string tolower $chan] eq "#wide_command"} {
-		foreach ch $chanlist {
-			putquick "PRIVMSG $ch : GLOBAL SCENE: $rest"
-		}
-		putlog "$nick sent Mass Global Scene to all channels"
-	}
-
-	set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-  if {[isop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } elseif {[ishalfop $nick $chan] == "1"} {
-    set who "$originship - Host $nick says:"
-  } else {
-    set who "$originship - $nick says:"
-  }
-  logger:save $who "GLOBAL SCENE: $rest"
-
-	return 1
+	relay_action_message $nick $chan "GLOBAL SCENE" $rest
 }
 
 bind need - "% op" needop
 proc needop {chan type} {
 	global botnick
 	putlog "I ($botnick) need op in $chan"
-	putquick "MODE $chan +o $botnick"
+	#putquick "MODE $chan +o $botnick"
 	return 1
 }
 
@@ -239,18 +146,21 @@ proc msg_ship {nick host handle rest} {
 	global shiplist
 	global fleetassignment
 	global taskforces
+	global jointchanprefix
+	global jointprefixlen
+
 	set cmd [string tolower [lindex [split $rest] 0]]
 	set shipname [lindex [split $rest] 1]
 	if {$cmd eq "add"} {
-		if {![validchan #wide_$shipname]} {
-			channel add #wide_$shipname
+		if {![validchan $jointchanprefix_$shipname]} {
+			channel add $jointchanprefix_$shipname
 			set shiplist([string tolower $shipname]) $shipname
 			puthelp "PRIVMSG $nick : Added $shipname"
 		}
 	}
 	if {$cmd eq "del"} {
 		unset shiplist([string tolower $shipname])
-		channel remove #wide_$shipname
+		channel remove $jointchanprefix_$shipname
 		puthelp "PRIVMSG $nick : Removed $shipname"
 	}
 	if {$cmd eq "tf"} {
@@ -262,26 +172,47 @@ proc msg_ship {nick host handle rest} {
 	return 1
 }
 
+proc logger:helper {chan nick text} {
+	set originship [get_ship_name $chan]
+	if {[isop $nick $chan] == "1"} {
+		set who "Host $nick says:"
+	} elseif {[ishalfop $nick $chan] == "1"} {
+		set who "Host $nick says:"
+	} else {
+		set who "$nick says:"
+	}
+	logger:save $originship $who $text
+}
+
 bind pubm - "#* *" logger:text
 proc logger:text {nick uhost handle chan text} {
+    set shipname [parse_joint_channel $chan]
     global shiplist
-    if {[string tolower $chan] != "#wide_command" && [string tolower $chan] != "#wide_fleethq" && [string tolower $chan] != "#wide_sensorgrid"} {
-        set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
-        
-        if {[isop $nick $chan] == "1"} {
-            set who "Host $nick says:"
-        } elseif {[ishalfop $nick $chan] == "1"} {
-            set who "Host $nick says:"
-        } else {
-            set who "$nick says:"
-        }
-        logger:save $who $text
-        logger:save $originship $who $text
+    if {$shipname != "command" && $shipname != "fleethq" && $shipname != "sensorgrid"} {
+    	logger:helper $chan $nick $text
     }
 }
 
 ### Secondary Commands
-proc logger:save {who text} {
+
+proc parse_joint_channel {chan} {
+	global shiplist
+	global jointchanprefix
+	global jointprefixlen
+
+	set originshiplabel [string tolower range $chan $jointprefixlen [string length $chan]]
+	return $originshiplabel
+}
+
+proc get_ship_name {chan} {
+	global shiplist
+	global jointchanprefix
+	global jointprefixlen
+
+	return $shiplist([parse_joint_channel $chan]);
+}
+
+proc logger:save {ship who text} {
     global logger
     
     set log "[open "$logger(dir)JointLog.log" a]"
@@ -299,13 +230,13 @@ proc logger:save {who text} {
 
 ### Tertiary Commands
 proc logger:strip {text} {
-  global logger numversion
-  if {$logger(strip) == "1"} {
-    if {$numversion >= "1061700"} {
-      set text "[stripcodes bcruag $text]"
-    } else {
-      regsub -all -- {\002,\003([0-9][0-9]?(,[0-9][0-9]?)?)?,\017,\026,\037} $text "" text
-    }
-  }
-  return $text
+	global logger numversion
+	if {$logger(strip) == "1"} {
+		if {$numversion >= "1061700"} {
+			set text "[stripcodes bcruag $text]"
+		} else {
+			regsub -all -- {\002,\003([0-9][0-9]?(,[0-9][0-9]?)?)?,\017,\026,\037} $text "" text
+		}
+	}
+	return $text
 }
