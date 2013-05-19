@@ -32,12 +32,18 @@ proc initialize_ship_channels {} {
 	}
 }
 
+proc ship_channel {ship} {
+	global jointchanprefix
+	set list {$jointchanprefix "_" $ship}
+	return join $list ""
+}
+
 proc initialize_ship_chan {type name} {
 	global jointchanprefix
 
-	if {![validchan $jointchanprefix_$name]} {
-		putlog "Creating $type Channel $name : $jointchanprefix_$name"
-		channel add $jointchanprefix_$name
+	if {![validchan [ship_channel $name]]} {
+		putlog "Creating $type Channel $name : [ship_channel $name]"
+		channel add [ship_channel $name]
 	}
 }
 
@@ -51,29 +57,29 @@ proc message_ship_target {targetship message} {
 	if {[string tolower $targetship] eq "all"} {
 		set chanlist [lindex [channels]]
 		foreach ch $chanlist {
-			if {[string tolower $ch] != "$jointchanprefix_fleethq"} {
+			if {[string tolower $ch] != [ship_channel "fleethq"]} {
 				if {[string tolower $ch] != [string tolower $chan]} {
 					putquick "PRIVMSG $ch : $message"
 				}
 			}
 		}
-	} elseif {[validchan $jointchanprefix_$targetship]} {
-		putquick "PRIVMSG $jointchanprefix_$targetship : $message"
+	} elseif {[validchan [ship_channel $targetship]} {
+		putquick "PRIVMSG [ship_channel $targetship] : $message"
 		if {[string tolower $targetship] != "sensorgrid"} {
-			putquick "PRIVMSG $jointchanprefix_SensorGrid : $message"
+			putquick "PRIVMSG [ship_channel "SensorGrid"] : $message"
 		}
 	} else {
 		set foundvalid 0
 		foreach name [array names fleetassignment] {
 			if {$fleetassignment($name) eq $targetship} {
 				set foundvalid 1
-				putquick "PRIVMSG $jointchanprefix_$name : $message"
+				putquick "PRIVMSG [ship_channel $name] : $message"
 			}
 		}
 		if {$foundvalid eq 0} {
-			putquick "PRIVMSG $jointchanprefix_Command : $message"
+			putquick "PRIVMSG [ship_channel "Command"] : $message"
 		}
-		putquick "PRIVMSG $jointchanprefix_SensorGrid : $message"
+		putquick "PRIVMSG [ship_channel "SensorGrid"] : $message"
 	}
 }
 
@@ -92,7 +98,7 @@ proc relay_message {nick uhost hand chan rest} {
 	global fleetassignment
 	global jointchanprefix
 	
-	if {[string tolower $chan] != "$jointchanprefix_fleethq" && [string tolower $chan] != "$jointchanprefix_sensorgrid"} {
+	if {[string tolower $chan] != [ship_channel "fleethq"] && [string tolower $chan] != [ship_channel "sensorgrid"]} {
 		set originship $shiplist([string tolower [string range $chan 6 [string length $chan]]])
 		#set targetship [string range $target 0 [expr [string length $target] - 2]]
 		set targetship [string trimright $target :]
@@ -109,7 +115,7 @@ proc relay_action_message {nick chan prefix message} {
 	set originship [get_ship_name $chan])
 	global jointchanprefix
 
-	if {[string tolower $chan] eq "$jointchanprefix_command"} {
+	if {[string tolower $chan] eq [ship_channel "command"]} {
 		message_ship_target "all" "<$nick> $prefix: $message"
 		putlog "$nick sent $prefix to all channels: $message"
   		logger:helper $chan $nick "$prefix: $message"
@@ -185,7 +191,7 @@ proc msg_ship {nick host handle rest} {
 	}
 	if {$cmd eq "del"} {
 		unset shiplist([string tolower $shipname])
-		channel remove $jointchanprefix_$shipname
+		channel remove [ship_channel $shipname]
 		puthelp "PRIVMSG $nick : Removed $shipname"
 	}
 	if {$cmd eq "tf"} {
